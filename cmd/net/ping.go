@@ -5,8 +5,10 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package net
 
 import (
+	"bufio"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,6 +16,7 @@ import (
 
 var (
 	urlPath string
+	fileOut string
 
 	// Logic
 	client = http.Client{
@@ -21,8 +24,10 @@ var (
 	}
 )
 
-func ping(domain string) (int, error) {
+func ping(domain string, fileOut string) (int, error) {
 	url := "http://" + domain
+
+	fmt.Println("File OUT", len(fileOut))
 
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
@@ -43,11 +48,22 @@ var pingCmd = &cobra.Command{
 	Short: "This pings a remote URL and returns the response ",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if resp, err := ping(urlPath); err != nil {
+		if resp, err := ping(urlPath, fileOut); err != nil {
 			fmt.Println(err)
 
 		} else {
-			fmt.Println(resp)
+			fmt.Println(args)
+			fmt.Println("RESPONSE", resp)
+
+			if len(fileOut) > 0 {
+				f, _ := os.Create(fileOut)
+				defer f.Close()
+
+				w := bufio.NewWriter(f)
+				fmt.Fprintf(w, "Here is the file %v", fileOut)
+				w.Flush()
+				//f.WriteString("The file is")
+			}
 		}
 	},
 }
@@ -55,6 +71,7 @@ var pingCmd = &cobra.Command{
 func init() {
 
 	pingCmd.Flags().StringVarP(&urlPath, "url", "u", "", "The url to pin")
+	pingCmd.Flags().StringVarP(&fileOut, "file", "F", "", "output to provided file name")
 
 	if err := pingCmd.MarkFlagRequired("url"); err != nil {
 		fmt.Println(err)
